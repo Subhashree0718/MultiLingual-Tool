@@ -1,0 +1,12 @@
+PyQt5==5.15.10
+pytesseract==0.3.10
+Pillow==10.2.0
+googletrans==4.0.0rc1
+langdetect==1.0.9
+pynput==1.7.6
+pywin32==306
+google-generativeai==0.3.2
+sounddevice==0.4.6
+numpy==1.26.0
+openai-whisper==20231117
+scipy==1.11.0
