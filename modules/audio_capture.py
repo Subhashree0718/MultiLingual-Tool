@@ -7,21 +7,19 @@ import numpy as np
 import queue
 import threading
 
+from streamlit import status
+
 
 class AudioCapture:
     def __init__(self, sample_rate=16000, channels=1):
-        """
-        Initialize audio capture
-        
-        Args:
-            sample_rate: Sample rate in Hz (16000 is good for speech recognition)
-            channels: Number of audio channels (1=mono, 2=stereo)
-        """
         self.sample_rate = sample_rate
         self.channels = channels
         self.is_recording = False
         self.audio_queue = queue.Queue()
         self.stream = None
+        self.callback = None   # 🔥 THIS LINE FIXES EVERYTHING
+ # 🔥 THIS LINE FIXES EVERYTHING
+
         
     def list_devices(self):
         """List all available audio devices"""
@@ -90,12 +88,17 @@ class AudioCapture:
         return None
     
     def audio_callback(self, indata, frames, time, status):
-        """Callback function for audio stream"""
         if status:
-            print(f"[WARN] Audio callback status: {status}")
-        
-        # Add audio data to queue
-        self.audio_queue.put(indata.copy())
+            print(status)
+
+    # Convert to mono immediately
+        if indata.shape[1] > 1:
+            indata = np.mean(indata, axis=1)
+
+        if self.callback:
+            self.callback(indata)
+
+
     
     def start_recording(self, callback=None):
         """
@@ -107,7 +110,7 @@ class AudioCapture:
         if self.is_recording:
             print("[WARN] Already recording")
             return False
-        
+        self.callback = callback 
         try:
             # Get loopback device
             device = self.get_loopback_device()
@@ -118,7 +121,7 @@ class AudioCapture:
                 channels=self.channels,
                 samplerate=self.sample_rate,
                 callback=self.audio_callback,
-                blocksize=int(self.sample_rate * 0.5)  # 0.5 second chunks
+                blocksize=int(self.sample_rate * 0.05)  # 0.05 second chunks
             )
             
             self.stream.start()

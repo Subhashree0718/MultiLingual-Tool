@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Browser Audio Translator",
+  "version": "1.0",
+  "permissions": ["tabCapture", "activeTab"],
+  "action": {
+    "default_title": "Translate Tab Audio"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

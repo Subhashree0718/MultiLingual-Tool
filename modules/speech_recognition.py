@@ -192,3 +192,9 @@ class RealtimeSpeechRecognizer:
         """Clear the audio buffer"""
         self.audio_buffer = []
         self.buffer_duration = 0
+    def add_browser_audio(self, audio_chunk):
+         """
+        Accept audio chunk from browser (float32, mono, 16kHz)
+        Same pipeline as mic/system audio
+        """
+         return self.add_audio(audio_chunk)

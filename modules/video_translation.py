@@ -125,3 +125,78 @@ class VideoTranslationService(QObject):
         """Change target translation language"""
         self.target_language = language_code
         print(f"[INFO] Target language changed to: {language_code}")
+
+    def start_browser_mode(self):
+        """Start browser audio translation"""
+        if self.is_active:
+            print("[WARN] Translation already active")
+            return False
+
+        try:
+            print("[INFO] Starting browser audio translation...")
+
+            # Initialize recognizer
+            self.speech_recognizer = RealtimeSpeechRecognizer(
+                model_size="tiny",
+                language=None
+            )
+
+            if not self.speech_recognizer.load_model():
+                self.error_occurred.emit("Failed to load speech model")
+                return False
+
+            from modules.browser_audio_server import BrowserAudioServer
+            import uvicorn
+            import threading
+
+            self.browser_server = BrowserAudioServer(
+                self.speech_recognizer,
+                self._on_browser_text
+            )
+
+            self.browser_thread = threading.Thread(
+                target=lambda: uvicorn.run(
+                    self.browser_server.app,
+                    host="127.0.0.1",
+                    port=8000,
+                    log_level="warning"
+                ),
+                daemon=True
+            )
+
+            self.browser_thread.start()
+
+            self.is_active = True
+            print("[OK] Browser audio translation started")
+            return True
+
+        except Exception as e:
+            self.error_occurred.emit(str(e))
+            return False
+    def _on_browser_text(self, result):
+        """Handle transcription from browser audio"""
+        original_text = result["text"]
+        detected_lang = result.get("language", "unknown")
+
+        print(f"[BROWSER STT] ({detected_lang}): {original_text}")
+
+        success, translation_result = self.translator.translate_with_detection(
+            original_text,
+            self.target_language
+        )
+
+        if success:
+            translated_text = translation_result.get("translated_text", "")
+            self.caption_ready.emit(original_text, translated_text)
+    def stop(self):
+        if not self.is_active:
+            return
+
+        if self.audio_capture:
+            self.audio_capture.stop_recording()
+
+        if self.speech_recognizer:
+            self.speech_recognizer.clear_buffer()
+
+        self.is_active = False
+        print("[OK] Translation stopped")
